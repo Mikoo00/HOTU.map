@@ -592,6 +592,10 @@
                 transition: none !important;
                 scroll-behavior: auto !important;
             }
+
+            .hidden {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -1737,7 +1741,40 @@
             renderPlaces('');
             initClock();
             fetchWeather();
-            weatherInterval = setInterval(fetchWeather, 600000);
+            
+            // PWA install prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const container = document.getElementById('pwa-install-container');
+        if (container) {
+            container.classList.remove('hidden');
+            }
+        });
+    }
+});
+
+    weatherInterval = setInterval(fetchWeather, 600000);
+});
+
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('#pwa-install-button')) {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('Приложение установлено');
+                }
+                deferredPrompt = null;
+                const container = document.getElementById('pwa-install-container');
+                if (container) {
+                    container.classList.add('hidden');
+                }
+            });
+        }
+    });
+            
         });
 
         window.addEventListener('beforeunload', () => {
@@ -2153,21 +2190,31 @@
         const settingsCard = document.querySelector('#settings-modal .modal-card');
         if (settingsCard) {
             settingsCard.innerHTML = `
-                <h2 id="settings-title" class="text-lg font-semibold mb-4">Настройки</h2>
-                <div class="settings-block">
-                    <label id="settings-theme-label" class="block text-sm mb-2">Тема</label>
-                    <div class="theme-palette-grid" id="theme-buttons"></div>
-                </div>
-                <div class="settings-block">
-                    <label id="settings-language-label" class="block text-sm mb-2">Язык интерфейса</label>
-                    <div class="segmented-grid">
-                        <button type="button" onclick="setLanguage('ru')" class="theme-btn lang-btn" data-lang="ru" id="lang-ru-btn">Русский</button>
-                        <button type="button" onclick="setLanguage('en')" class="theme-btn lang-btn" data-lang="en" id="lang-en-btn">English</button>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 mb-4"><span id="settings-weather-label">Показывать погоду</span><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="setting-weather" class="sr-only" checked><span class="checkbox-toggle"></span></label></div>
-                <div class="grid grid-cols-2 gap-2"><button type="button" class="ghost-btn" onclick="openAbout()" id="settings-about-btn">О проекте</button><button type="button" class="action-btn" onclick="closeSettings()" id="settings-done-btn">Готово</button></div>`;
+        <h2 id="settings-title" class="text-lg font-semibold mb-4">Настройки</h2>
+        <div class="settings-block">
+            <label id="settings-theme-label" class="block text-sm mb-2">Тема</label>
+            <div class="theme-palette-grid" id="theme-buttons"></div>
+        </div>
+        <div class="settings-block">
+            <label id="settings-language-label" class="block text-sm mb-2">Язык интерфейса</label>
+            <div class="segmented-grid">
+                <button type="button" onclick="setLanguage('ru')" class="theme-btn lang-btn" data-lang="ru" id="lang-ru-btn">Русский</button>
+                <button type="button" onclick="setLanguage('en')" class="theme-btn lang-btn" data-lang="en" id="lang-en-btn">English</button>
+            </div>
+        </div>
+        <div class="flex items-center justify-between gap-3 mb-4"><span id="settings-weather-label">Показывать погоду</span><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="setting-weather" class="sr-only" checked><span class="checkbox-toggle"></span></label></div>
+        
+        <!-- БЛОК УСТАНОВКИ PWA (изначально скрыт) -->
+        <div id="pwa-install-container" class="hidden mt-4 mb-4">
+            <button id="pwa-install-button" class="action-btn w-full flex items-center justify-center gap-2">
+                <i class="fas fa-download"></i> Установить приложение
+            </button>
+            <p class="text-xs text-[var(--text-muted)] text-center mt-2">На iPhone используйте «Поделиться» → «На экран домой»</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2"><button type="button" class="ghost-btn" onclick="openAbout()" id="settings-about-btn">О проекте</button><button type="button" class="action-btn" onclick="closeSettings()" id="settings-done-btn">Готово</button></div>`;
         }
+        
         if (!document.getElementById('about-modal')) {
             const aboutHtml = `
                 <div id="about-modal" class="modal-overlay" onclick="if(event.target===this) closeAbout()">
@@ -2353,15 +2400,15 @@
     enrichPlacesData(); buildStaticUi(); renderThemeButtons(); applyThemeVariables(currentTheme); updateSeoForTab('places');
     window.addEventListener('load', () => { attachExtraListeners(); refreshMapMarkers(); applyLocalization(); const stored = getStoredJson('hotu-profile', null); if (stored?.name) profile.name = stored.name; if (stored?.avatar) profile.avatar = stored.avatar; applyProfileUI(); const coordsEl = $('sos-coords-value'); if (coordsEl) coordsEl.textContent = userLocation ? `${userLocation.lat.toFixed(4)}° N, ${userLocation.lng.toFixed(4)}° E` : '--'; });
 })();
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log('Service Worker registered', reg))
         .catch(err => console.log('Service Worker registration failed', err));
-    });
   }
+         });
+    }
+});
 </script>
 
 </body>
