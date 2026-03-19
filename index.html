@@ -1038,16 +1038,14 @@
         }
 
         function updateMapTiles() {
-            if (!map) return;
-
-            if (tileLayer) {
-                map.removeLayer(tileLayer);
-            }
-
-            tileLayer = L.tileLayer(getTileLayerUrl(currentTheme), {
-                attribution: 'HOTU.map'
-            }).addTo(map);
-        }
+    if (!map) return;
+    if (tileLayer) {
+        map.removeLayer(tileLayer);
+    }
+    tileLayer = L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=ctCsefP9BdBu542q3YYy', {
+        attribution: '© MapTiler © OpenStreetMap contributors'
+    }).addTo(map);
+}
 
         function initMap() {
             map = L.map('map', { zoomControl: true }).setView(DEFAULT_CENTER, 6);
