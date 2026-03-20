@@ -593,10 +593,20 @@
                 scroll-behavior: auto !important;
             }
         }
+        
 .hidden {
     display: none !important;
 }
-</style>
+
+#avatar-preview img {
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border-radius: 9999px; /* если нужно закруглить */
+}
+
+.leaflet-control-attribution {
+    display: none;
+}
     </style>
 </head>
 <body data-theme="dark">
@@ -737,17 +747,57 @@
     </div>
 
     <div id="profile-modal" class="modal-overlay" onclick="if(event.target===this) closeProfile()">
-        <div class="modal-card glass-card">
-            <h2 class="text-lg font-semibold mb-4">Профиль</h2>
-            <input type="text" id="profile-name" placeholder="Ваше имя" class="profile-input mb-4">
-            <div class="flex gap-3 justify-center mb-4">
-                <div class="avatar-option" data-avatar="fa-user"><i class="fas fa-user"></i></div>
-                <div class="avatar-option" data-avatar="fa-compass"><i class="fas fa-compass"></i></div>
-                <div class="avatar-option" data-avatar="fa-map-pin"><i class="fas fa-map-pin"></i></div>
+    <div class="modal-card glass-card">
+        <h2 class="text-lg font-semibold mb-4" id="profile-title">Профиль</h2>
+        <p class="modal-note mb-4" id="profile-subtitle">Ваши настройки и персонализация</p>
+
+        <!-- Поле имени -->
+        <input type="text" id="profile-name" placeholder="Ваше имя" class="profile-input mb-4">
+
+        <!-- Блок выбора аватара (иконки) -->
+        <div class="mb-4">
+            <label class="block text-sm mb-2">Выберите аватар</label>
+            <div class="flex gap-3 justify-center mb-3">
+                <div class="avatar-option" data-avatar="fa-user"><i class="fas fa-user"></i> → <span>User</span></div>
+                <div class="avatar-option" data-avatar="fa-compass"><i class="fas fa-compass"></i> → <span>Compass</span></div>
+                <div class="avatar-option" data-avatar="fa-map-pin"><i class="fas fa-map-pin"></i> → <span>Pi</span></div>
             </div>
+
+            <!-- Превью загруженного фото -->
+            <div id="avatar-preview" class="flex justify-center mb-2"></div>
+
+            <!-- Кнопка загрузки файла (стилизованный label) -->
+            <label for="profile-avatar-upload" class="block w-full mb-4">
+    <span class="block w-full text-center py-3 px-4 rounded-xl border border-[var(--border)] bg-[var(--soft-bg)] hover:bg-[var(--soft-bg-strong)] cursor-pointer transition-colors">
+        📷 Загрузить своё фото
+    </span>
+    <input type="file" id="profile-avatar-upload" accept="image/*" class="hidden">
+</label>
+<button type="button" id="reset-avatar-btn" class="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] mt-2 text-center w-full">
+    Сбросить аватар (вернуть иконки)
+</button>
+        </div>
+
+        <!-- Статистика (57 объектов, язык, тема) -->
+        <div class="profile-stats">
+            <div class="stat-chip"><strong id="profile-count-value">57</strong><span id="profile-count-label">объектов</span></div>
+            <div class="stat-chip"><strong id="profile-lang-value">RU</strong><span id="profile-lang-label">язык</span></div>
+            <div class="stat-chip"><strong id="profile-theme-value">Тёмная</strong><span id="profile-theme-label">тема</span></div>
+        </div>
+
+        <!-- Информационный блок -->
+        <div class="info-chip mb-4">
+            <strong>Текущие предпочтения</strong>
+            <span>Сохраните имя, аватар и быстрый доступ к настройкам путешествия.</span>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" class="ghost-btn" onclick="openAbout()">О проекте</button>
             <button type="button" class="action-btn" onclick="saveProfile()">Сохранить</button>
         </div>
     </div>
+</div>
 
     <div id="settings-modal" class="modal-overlay" onclick="if(event.target===this) closeSettings()">
         <div class="modal-card glass-card">
@@ -935,7 +985,7 @@
         let weatherInterval = null;
         let clockInterval = null;
         let weatherData = null;
-        let profile = { name: 'Гость', avatar: 'fa-user' };
+        let profile = { name: 'Гость', avatar: 'fa-user', avatarUrl: null };
         let searchDebounceTimer = null;
         const geocodeCache = new Map();
         const placeMarkers = new Map();
@@ -1520,15 +1570,42 @@
         // ПРОФИЛЬ
         // ------------------------------------------------------------
         function applyProfileUI() {
-            $('profile-name').value = profile.name || '';
-            document.querySelectorAll('.avatar-option').forEach((option) => {
-                option.classList.toggle('selected', option.dataset.avatar === profile.avatar);
-            });
-            $('profile-button').innerHTML = `<i class="fas ${profile.avatar || 'fa-user'}"></i>`;
+    const profileButton = $('#profile-button');
+    const avatarOptions = document.querySelectorAll('.avatar-option');
+    const previewContainer = $('#avatar-preview');
+
+    // Имя в поле ввода
+    $('#profile-name').value = profile.name || '';
+
+    // Подсветка выбранной иконки (только если нет загруженного фото)
+    avatarOptions.forEach(option => {
+        option.classList.toggle('selected', !profile.avatarUrl && option.dataset.avatar === profile.avatar);
+    });
+
+    // Отображение аватара в шапке
+    if (profile.avatarUrl) {
+        profileButton.innerHTML = `<img src="${profile.avatarUrl}" alt="avatar" class="w-10 h-10 rounded-full object-cover">`;
+    } else {
+        profileButton.innerHTML = `<i class="fas ${profile.avatar || 'fa-user'}"></i>`;
+    }
+
+    // Превью в модалке
+    if (previewContainer) {
+        if (profile.avatarUrl) {
+            previewContainer.innerHTML = `<img src="${profile.avatarUrl}" class="w-16 h-16 rounded-full object-cover mx-auto">`;
+        } else {
+            previewContainer.innerHTML = ''; // очищаем, если фото нет
         }
+    }
+}
 
         function loadProfile() {
-            profile = getStoredJson('hotu-profile', profile) || profile;
+            const saved = getStoredJson('hotu-profile', null);
+    if (saved) {
+        profile.name = saved.name || 'Гость';
+        profile.avatar = saved.avatar || 'fa-user';
+        profile.avatarUrl = saved.avatarUrl || null;   // новое поле
+    }
             applyProfileUI();
         }
 
@@ -1542,18 +1619,63 @@
         }
 
         function saveProfile() {
-            const name = $('profile-name').value.trim();
-            const selectedAvatar = document.querySelector('.avatar-option.selected');
+    const name = $('#profile-name').value.trim();
 
-            profile = {
-                name: name || 'Гость',
-                avatar: selectedAvatar?.dataset.avatar || profile.avatar || 'fa-user'
-            };
+    // Если есть загруженное фото, avatar оставляем как null (или можно сохранить последнюю выбранную иконку на всякий случай)
+    if (!profile.avatarUrl) {
+        const selectedAvatar = document.querySelector('.avatar-option.selected');
+        profile.avatar = selectedAvatar?.dataset.avatar || 'fa-user';
+    }
 
-            localStorage.setItem('hotu-profile', JSON.stringify(profile));
-            applyProfileUI();
-            closeProfile();
+    profile.name = name || 'Гость';
+
+    localStorage.setItem('hotu-profile', JSON.stringify(profile));
+    applyProfileUI();
+    closeProfile();
+}
+
+        function initAvatarUpload() {
+    const uploadInput = $('#profile-avatar-upload');
+    if (!uploadInput) return;
+
+    uploadInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Проверка типа файла
+        if (!file.type.startsWith('image/')) {
+            alert('Пожалуйста, выберите изображение.');
+            return;
         }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            profile.avatarUrl = e.target.result;   // DataURL
+            profile.avatar = null;                  // сбрасываем иконку
+            applyProfileUI();
+            saveProfile();                           // сразу сохраняем
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+        // Функция сброса аватара (из шага 6)
+        function resetAvatar() {
+    profile.avatarUrl = null;
+    profile.avatar = 'fa-user';
+    applyProfileUI();
+    saveProfile();
+    const uploadInput = $('#profile-avatar-upload');
+    if (uploadInput) uploadInput.value = '';
+}
+
+// Инициализация кнопки сброса
+        function initResetButton() {
+    const resetBtn = $('#reset-avatar-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetAvatar);
+    }
+}
 
         // ------------------------------------------------------------
         // НАСТРОЙКИ
@@ -1739,6 +1861,8 @@
             renderPlaces('');
             initClock();
             fetchWeather();
+            initAvatarUpload();
+            initResetButton();
             
                 // PWA install prompt
     let deferredPrompt;
