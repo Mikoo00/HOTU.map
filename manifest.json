@@ -1,19 +1,20 @@
 {
-  "name": "HOTU.map",
+  "name": "HOTU.map — гид по Якутии",
   "short_name": "HOTU.map",
-  "start_url": "/",
+  "description": "Интерактивная карта Якутии с маршрутами, погодой и 57 местами",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0b0f17",
   "theme_color": "#0b0f17",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
