@@ -801,6 +801,11 @@
             <strong>Текущие предпочтения</strong>
             <span>Сохраните имя, аватар и быстрый доступ к настройкам путешествия.</span>
         </div>
+        
+        <div class="mt-4">
+            <button id="auth-action-btn" class="action-btn w-full" onclick="openAuthModal()">Войти</button>
+            <button id="logout-btn" class="ghost-btn w-full mt-2 hidden" onclick="logoutUser()">Выйти</button>
+</div>
 
         <!-- Кнопки действий -->
         <div class="grid grid-cols-2 gap-2">
@@ -833,6 +838,34 @@
             <button type="button" class="action-btn" onclick="closeSettings()">Готово</button>
         </div>
     </div>
+    
+    <!-- Модальное окно входа/регистрации -->
+<div id="auth-modal" class="modal-overlay" onclick="if(event.target===this) closeAuthModal()">
+  <div class="modal-card glass-card">
+    <h2 class="text-lg font-semibold mb-2" id="auth-title">Вход / Регистрация</h2>
+    <div class="mb-4">
+      <button onclick="signInWithGoogle()" class="action-btn w-full mb-2 flex items-center justify-center gap-2">
+        <i class="fab fa-google"></i> Войти через Google
+      </button>
+    </div>
+    <div class="relative my-3 text-center">
+      <span class="text-xs text-[var(--text-muted)] bg-[var(--surface)] px-2">или</span>
+      <hr class="border-t border-[var(--border)] absolute w-full top-1/2 -z-10">
+    </div>
+    <div id="auth-form">
+      <input type="text" id="auth-name" placeholder="Имя (для регистрации)" class="profile-input mb-2">
+      <input type="email" id="auth-email" placeholder="Email" class="profile-input mb-2">
+      <input type="password" id="auth-password" placeholder="Пароль" class="profile-input mb-2">
+      <div class="flex gap-2">
+        <button onclick="registerWithEmail()" class="ghost-btn flex-1">Зарегистрироваться</button>
+        <button onclick="loginWithEmail()" class="ghost-btn flex-1">Войти</button>
+      </div>
+    </div>
+    <div class="mt-3 text-center">
+      <button onclick="closeAuthModal()" class="text-sm text-[var(--text-muted)]">Закрыть</button>
+    </div>
+  </div>
+</div>
 
     <div id="sos-modal" class="modal-overlay" onclick="if(event.target===this) closeSOS()">
         <div class="modal-card glass-card border border-red-500/50">
@@ -866,7 +899,7 @@
         // ------------------------------------------------------------
         const placesData = [
             // 1. Ленские Столбы
-            { id:1, name:"Ленские Столбы", category:"Природа", coords:[61.1333,127.35], desc:"геологическое образование, объект ЮНЕСКО: скалы до 220 м вдоль Лены.", full:"Уникальный природный парк с вертикальными скальными образованиями высотой до 220 метров вдоль реки Лены. Включён в список Всемирного наследия ЮНЕСКО. Предлагает маршруты для пеших и водных экскурсий, наблюдение за флорой и фауной региона. Режим работы: круглогодично, лучшее время для посещения — с июня по сентябрь.", img:"https://www.culture.ru/_next/image?url=https%3A%2F%2Fcdn.culture.ru%2Fc%2F254131.884x442.jpg&w=768&q=75", phone:"+7 (4112) 45‑67‑89", site:"https://www.lenapillars.ru", price:"взрослый — 500 руб., детский — 250 руб." },
+            { id:1, name:"Ленские Столбы", category:"Природа", coords:[61.1333,127.35], desc:"геологическое образование, объект ЮНЕСКО: скалы до 220 м вдоль Лены.", full:"Уникальный природный парк с вертикальными скальными образованиями высотой до 220 метров вдоль реки Лены. Включён в список Всемирного наследия ЮНЕСКО. Предлагает маршруты для пеших и водных экскурсий, наблюдение за флорой и фауной региона. Режим работы: круглогодично, лучшее время для посещения — с июня по сентябрь.", img:"https://www.culture.ru/_next/image?url=https%3A%2F%2Fcdn.culture.ru%2Fc%2F254131.884x442.jpg&w=768&q=75", phone:"+7 (4112) 45‑67‑89", site:"https://www.lena-pillars.ru", price:"взрослый — 500 руб., детский — 250 руб." },
             // 2. Синские столбы
             { id:2, name:"Синские столбы", category:"Природа", coords:[61.3,128.0], desc:"скальное образование в 30 км от Ленских столбов, с наскальными рисунками.", full:"Живописные скальные образования в 30 км от Ленских столбов. Известны древними наскальными рисунками (петроглифами), представляющими археологическую и культурную ценность. Доступны пешие маршруты и экскурсии. Режим работы: круглогодично.", img:"https://idilesom.com/files/photos/places/b/693c1e1454a10_1765547540.jpg", phone:"+7 (41136) 7‑12‑34", site:"", price:"300 руб. (включая экскурсию)" },
             // 3. Тукуланы (песчаные дюны)
@@ -1608,6 +1641,42 @@
             previewContainer.innerHTML = ''; // очищаем, если фото нет
         }
     }
+
+// --- НОВЫЙ КОД ДЛЯ КНОПОК ВХОДА/ВЫХОДА ---
+    const authBtn = document.getElementById('auth-action-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    if (authBtn && logoutBtn) {
+        
+        // после объявления isLoggedIn
+window.userLoggedIn = false;
+
+// внутри onAuthStateChanged
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    isLoggedIn = true;
+    window.userLoggedIn = true;
+    await loadUserProfile(user);
+  } else {
+    isLoggedIn = false;
+    window.userLoggedIn = false;
+    const saved = localStorage.getItem('hotu-profile');
+    if (saved) {
+      profile = JSON.parse(saved);
+    } else {
+      profile = { name: 'Гость', avatar: 'fa-user', avatarUrl: null };
+    }
+    applyProfileUI();
+  }
+});
+        
+        if (window.userLoggedIn) {
+            authBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+        } else {
+            authBtn.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
+        }
+    }
 }
 
         function loadProfile() {
@@ -1629,7 +1698,7 @@
             toggleModal('profile-modal', false);
         }
 
-        function saveProfile() {
+        async function saveProfile() {
     const name = $('#profile-name').value.trim();
 
     // Если есть загруженное фото, avatar оставляем как null (или можно сохранить последнюю выбранную иконку на всякий случай)
@@ -1642,10 +1711,22 @@
 
     localStorage.setItem('hotu-profile', JSON.stringify(profile));
     applyProfileUI();
+
+    // Если пользователь авторизован, обновляем в Firestore
+    if (window.userLoggedIn && window.auth && window.auth.currentUser) {
+        const userRef = window.doc(window.db, "users", window.auth.currentUser.uid);
+        await window.setDoc(userRef, {
+            name: profile.name,
+            avatar: profile.avatar,
+            avatarUrl: profile.avatarUrl
+        }, { merge: true });
+    }
+
     closeProfile();
 }
 
         function initAvatarUpload() {
+            
     const uploadInput = $('#profile-avatar-upload');
     if (!uploadInput) return;
 
@@ -1867,7 +1948,6 @@
             updateViewportHeight();
             initMap();
             attachEventListeners();
-            loadProfile();
             loadSettings();
             renderPlaces('');
             initClock();
@@ -2548,7 +2628,261 @@ if (isIOS()) {
         pwaContainer.classList.remove('hidden');
     }
 }
+
+
 </script>
 
+<!-- Firebase Authentication + Firestore -->
+<script type="module">
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBX7awZ39HgCyG3lqwAxlhhqQV6QTtPqEM",
+  authDomain: "hotu-map.firebaseapp.com",
+  projectId: "hotu-map",
+  storageBucket: "hotu-map.firebasestorage.app",
+  messagingSenderId: "775890958240",
+  appId: "1:775890958240:web:6863527559bf8262b556c5",
+  measurementId: "G-9ER0SM0MRK"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+  const db = getFirestore(app);
+  const googleProvider = new GoogleAuthProvider();
+  
+  // Делаем объекты доступными глобально
+  window.auth = auth;
+  window.db = db;
+  window.googleProvider = googleProvider;
+  window.signInWithPopup = signInWithPopup;
+  window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+  window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+  window.signOut = signOut;
+  window.doc = doc;
+  window.setDoc = setDoc;
+  window.getDoc = getDoc;
+
+  // Флаги состояния
+  let isLoggedIn = false;
+
+  // Функции аутентификации
+  async function signInWithGoogle() {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      await saveUserProfile(user);
+      return user;
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      alert("Ошибка входа через Google: " + error.message);
+    }
+  }
+
+  async function createUserWithEmailPassword(email, password) {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await saveUserProfile(user);
+      return user;
+    } catch (error) {
+      console.error("Sign up error:", error);
+      alert("Ошибка регистрации: " + error.message);
+    }
+  }
+
+  async function loginWithEmailPassword(email, password) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await loadUserProfile(user);
+      return user;
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Ошибка входа: " + error.message);
+    }
+  }
+  
+  async function logoutUser() {
+    try {
+      await signOut(auth);
+      // очистить локальный профиль
+      localStorage.removeItem('hotu-profile');
+      profile = { name: 'Гость', avatar: 'fa-user', avatarUrl: null };
+      applyProfileUI();
+      alert("Вы вышли из аккаунта");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
+
+  async function saveUserProfile(user) {
+    const userRef = doc(db, "users", user.uid);
+    const userData = {
+      name: user.displayName || (user.email ? user.email.split('@')[0] : 'Пользователь'),
+      email: user.email,
+      avatarUrl: user.photoURL || null,
+      avatar: user.photoURL ? null : 'fa-user',
+      lastLogin: new Date().toISOString()
+    };
+    await setDoc(userRef, userData, { merge: true });
+    // Обновить локальный profile
+    profile = {
+      name: userData.name,
+      avatar: userData.avatar,
+      avatarUrl: userData.avatarUrl
+    };
+    applyProfileUI();
+    localStorage.setItem('hotu-profile', JSON.stringify(profile));
+  }
+  
+  // Отслеживаем состояние аутентификации при загрузке
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      isLoggedIn = true;
+      await loadUserProfile(user);
+    } else {
+      isLoggedIn = false;
+      // загружаем гостевой профиль из localStorage
+      const saved = localStorage.getItem('hotu-profile');
+      if (saved) {
+        profile = JSON.parse(saved);
+      } else {
+        profile = { name: 'Гость', avatar: 'fa-user', avatarUrl: null };
+      }
+      applyProfileUI();
+    }
+  });
+  
+    // Функции управления модальным окном
+  function closeAuthModal() {
+    document.getElementById('auth-modal').classList.remove('open');
+  }
+
+  function openAuthModal() {
+    document.getElementById('auth-modal').classList.add('open');
+  }
+
+  async function registerWithEmail() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const name = document.getElementById('auth-name').value;
+    if (!email || !password) {
+      alert('Заполните email и пароль');
+      return;
+    }
+    const user = await createUserWithEmailPassword(email, password);
+    if (user) {
+      // обновляем имя в Firestore (если указано)
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, { name: name || user.email.split('@')[0] }, { merge: true });
+      await loadUserProfile(user);
+      closeAuthModal();
+    }
+  }
+
+  async function loginWithEmail() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    if (!email || !password) {
+      alert('Введите email и пароль');
+      return;
+    }
+    const user = await loginWithEmailPassword(email, password);
+    if (user) {
+      closeAuthModal();
+    }
+  }
+  
+  // Делаем функции глобальными для вызова из onclick
+  window.signInWithGoogle = signInWithGoogle;
+  window.createUserWithEmailPassword = createUserWithEmailPassword;
+  window.loginWithEmailPassword = loginWithEmailPassword;
+  window.logoutUser = logoutUser;
+  window.isLoggedIn = () => isLoggedIn;
+  window.closeAuthModal = closeAuthModal;
+  window.openAuthModal = openAuthModal;
+  window.registerWithEmail = registerWithEmail;
+  window.loginWithEmail = loginWithEmail;
+</script>
+
+<!-- Модальное окно входа/регистрации -->
+<div id="auth-modal" class="modal-overlay" onclick="if(event.target===this) closeAuthModal()">
+  <div class="modal-card glass-card">
+    <h2 class="text-lg font-semibold mb-2" id="auth-title">Вход / Регистрация</h2>
+    <div class="mb-4">
+      <button onclick="signInWithGoogle()" class="action-btn w-full mb-2 flex items-center justify-center gap-2">
+        <i class="fab fa-google"></i> Войти через Google
+      </button>
+    </div>
+    <div class="relative my-3 text-center">
+      <span class="text-xs text-[var(--text-muted)] bg-[var(--surface)] px-2">или</span>
+      <hr class="border-t border-[var(--border)] absolute w-full top-1/2 -z-10">
+    </div>
+    <div id="auth-form">
+      <input type="text" id="auth-name" placeholder="Имя (для регистрации)" class="profile-input mb-2">
+      <input type="email" id="auth-email" placeholder="Email" class="profile-input mb-2">
+      <input type="password" id="auth-password" placeholder="Пароль" class="profile-input mb-2">
+      <div class="flex gap-2">
+        <button onclick="registerWithEmail()" class="ghost-btn flex-1">Зарегистрироваться</button>
+        <button onclick="loginWithEmail()" class="ghost-btn flex-1">Войти</button>
+      </div>
+    </div>
+    <div class="mt-3 text-center">
+      <button onclick="closeAuthModal()" class="text-sm text-[var(--text-muted)]">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  // Функции для работы с модалкой аутентификации
+  function closeAuthModal() {
+    document.getElementById('auth-modal').classList.remove('open');
+  }
+
+  function openAuthModal() {
+    document.getElementById('auth-modal').classList.add('open');
+  }
+
+  async function registerWithEmail() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const name = document.getElementById('auth-name').value;
+    if (!email || !password) {
+      alert('Заполните email и пароль');
+      return;
+    }
+    const user = await createUserWithEmailPassword(email, password);
+    if (user) {
+      // обновляем имя в Firestore
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, { name: name || user.email.split('@')[0] }, { merge: true });
+      await loadUserProfile(user);
+      closeAuthModal();
+    }
+  }
+
+  async function loginWithEmail() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    if (!email || !password) {
+      alert('Введите email и пароль');
+      return;
+    }
+    const user = await loginWithEmailPassword(email, password);
+    if (user) {
+      closeAuthModal();
+    }
+  }
+</script>
 </body>
 </html>
